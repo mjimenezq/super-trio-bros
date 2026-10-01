@@ -453,6 +453,9 @@ const ONEWAY = new Set(['1','2','3','4','c']);
 let L = buildLevel(0);
 let hero = null, enemies = [], items = [], parts = [], floats = [], bumps = [];
 let camX = 0, camY = 0;
+// Modo arcade: dentro de la máquina de Magic The Beer Quest. Un solo nivel con 3 vidas y avisa el resultado.
+const ARCADE = /[?&]arcade=1/.test(location.search);
+function arcadeReport(cleared){ if (!ARCADE) return; try { parent.postMessage({ type:'stb-end', score:G.score, cleared }, '*'); } catch(_) {} }
 const G = { state:'title', sel:0, lvl:0, lives:5, score:0, coins:0, time:300, timeF:0, cards:[], paused:false,
   freeze:0, clear:null, t:0, power:{big:false,rac:false}, msg:null, best:0 };
 try { G.best = +localStorage.getItem('trio_best') || 0; } catch(_) {}
@@ -495,7 +498,7 @@ function moveEntity(e, nudge){
 
 /* ================= GAME FLOW ================= */
 function startGame(){
-  G.lives = 5; G.score = 0; G.coins = 0; G.cards = []; G.lvl = 0; G.power = {big:false, rac:false};
+  G.lives = ARCADE ? 3 : 5; G.score = 0; G.coins = 0; G.cards = []; G.lvl = 0; G.power = {big:false, rac:false};
   toIntro();
 }
 function toIntro(){ G.state = 'intro'; G.t = 0; L = buildLevel(G.lvl); stopMusic(); }
@@ -837,6 +840,7 @@ function updateClear(){
     } else if (cl.t - cl.done > 110) {
       G.power = { big:h.big, rac:h.rac };
       G.lvl++;
+      if (ARCADE) { G.state = 'end'; G.t = 0; arcadeReport(true); return; }
       if (G.lvl >= LEVEL_COUNT) { G.state = 'end'; G.t = 0; saveBest(); SFX.oneup(); }
       else toIntro();
     }
@@ -853,7 +857,7 @@ function updatePlay(){
     if (h.deathT > 36 && h.y < L.H*TS + 40) { h.vy += 0.22; h.y += h.vy; }
     if (h.deathT > 190) {
       G.lives--;
-      if (G.lives <= 0) { G.state = 'over'; G.t = 0; saveBest(); }
+      if (G.lives <= 0) { G.state = 'over'; G.t = 0; saveBest(); arcadeReport(false); }
       else toIntro();
     }
     return;
